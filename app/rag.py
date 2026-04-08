@@ -7,7 +7,8 @@ import chromadb
 from chromadb.config import Settings as ChromaSettings
 from chromadb.utils import embedding_functions
 from groq import Groq
-from pypdf import PdfReader
+# from pypdf import PdfReader
+import fitz
 
 from app.config import Settings
 
@@ -63,8 +64,11 @@ class RAGEngine:
         metas: list[dict[str, Any]] = []
 
         for pdf_path in pdf_paths:
-            reader = PdfReader(str(pdf_path))
-            full_text = "\n".join(page.extract_text() or "" for page in reader.pages)
+            # reader = PdfReader(str(pdf_path))
+            # full_text = "\n".join(page.extract_text() or "" for page in reader.pages)
+            doc = fitz.open(str(pdf_path))
+            full_text = "\n".join(page.get_text("text") or "" for page in doc)
+            doc.close()
             chunks = self._chunk_text(
                 full_text,
                 self.settings.chunk_size,
