@@ -7,7 +7,6 @@ import chromadb
 from chromadb.config import Settings as ChromaSettings
 from chromadb.utils import embedding_functions
 from groq import Groq
-# from pypdf import PdfReader
 import fitz
 
 from app.config import Settings
@@ -46,13 +45,32 @@ class RAGEngine:
             start += step
         return chunks
 
+    def _read_source_text(self, source_path: Path) -> str:
+        suffix = source_path.suffix.lower()
+
+        if suffix == ".pdf":
+            doc = fitz.open(str(source_path))
+            text = "\n".join(page.get_text("text") or "" for page in doc)
+            doc.close()
+            return text
+
+        if suffix in {".md", ".txt"}:
+            return source_path.read_text(encoding="utf-8")
+
+        return ""
+
     def ingest(self) -> dict[str, Any]:
         corpus = Path(self.settings.corpus_path)
         if not corpus.exists():
             raise FileNotFoundError(f"Corpus folder not found: {corpus}")
 
-        pdf_paths = sorted(corpus.glob("*.pdf"))
-        if not pdf_paths:
+        source_paths = sorted(
+            list(corpus.glob("*.pdf")) +
+            list(corpus.glob("*.md")) +
+            list(corpus.glob("*.txt"))
+        )
+
+        if not source_paths:
             return {"indexed_files": 0, "indexed_chunks": 0}
 
         existing_count = self._collection.count()
@@ -63,26 +81,28 @@ class RAGEngine:
         docs: list[str] = []
         metas: list[dict[str, Any]] = []
 
-        for pdf_path in pdf_paths:
-            # reader = PdfReader(str(pdf_path))
-            # full_text = "\n".join(page.extract_text() or "" for page in reader.pages)
-            doc = fitz.open(str(pdf_path))
-            full_text = "\n".join(page.get_text("text") or "" for page in doc)
-            doc.close()
+        for source_path in source_paths:
+            full_text = self._read_source_text(source_path)
+
             chunks = self._chunk_text(
                 full_text,
                 self.settings.chunk_size,
                 self.settings.chunk_overlap,
             )
+
             for idx, chunk in enumerate(chunks):
-                ids.append(f"{pdf_path.stem}-{idx}")
+                ids.append(f"{source_path.stem}-{source_path.suffix.lower()}-{idx}")
                 docs.append(chunk)
-                metas.append({"source": str(pdf_path), "chunk_index": idx})
+                metas.append({"source": source_path.name, "chunk_index": idx})
 
         if ids:
             self._collection.add(ids=ids, documents=docs, metadatas=metas)
 
-        return {"indexed_files": len(pdf_paths), "indexed_chunks": len(ids), "skipped": False}
+        return {
+            "indexed_files": len(source_paths),
+            "indexed_chunks": len(ids),
+            "skipped": False,
+        }
 
     def query(self, user_query: str) -> dict[str, Any]:
         if not user_query.strip():
@@ -119,7 +139,7 @@ class RAGEngine:
 
     def _generate_answer(self, query: str, chunks: list[str]) -> str:
         if not chunks:
-            return "I couldn't find relevant context in the indexed PDF corpus."
+            return "I couldn't find relevant context in the indexed corpus."
 
         context = "\n\n".join(chunks[: self.settings.retrieval_k])
 
