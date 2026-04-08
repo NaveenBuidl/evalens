@@ -1,0 +1,73 @@
+name: Eval Gate
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      retrieval_k:
+        description: "Optional retrieval_k override (use 1 to run degraded config)"
+        required: false
+        default: ""
+
+jobs:
+  contextual-precision-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Optionally override retrieval_k
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.retrieval_k != '' }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+
+          config_path = Path("config.yaml")
+          data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+          data["retrieval_k"] = int("${{ github.event.inputs.retrieval_k }}")
+          config_path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+          print(f"Using retrieval_k={data['retrieval_k']}")
+          PY
+
+      - name: Run eval and enforce ContextualPrecisionMetric gate
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          uvicorn app.main:app --host 127.0.0.1 --port 8000 > uvicorn.log 2>&1 &
+          UVICORN_PID=$!
+          trap 'kill $UVICORN_PID || true' EXIT
+
+          for i in {1..30}; do
+            if curl -sf http://127.0.0.1:8000/docs > /dev/null; then
+              break
+            fi
+            sleep 2
+          done
+
+          python eval/run_eval.py | tee eval_output.txt
+
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          threshold = 0.64
+          text = Path("eval_output.txt").read_text(encoding="utf-8", errors="ignore")
+          match = re.search(r"ContextualPrecisionMetric: avg_score=([0-9.]+)", text)
+          if not match:
+              raise SystemExit("Could not find aggregate ContextualPrecisionMetric in eval output")
+
+          score = float(match.group(1))
+          print(f"ContextualPrecisionMetric avg_score={score:.3f} (threshold={threshold:.2f})")
+          if score < threshold:
+              raise SystemExit(f"CI gate failed: ContextualPrecisionMetric {score:.3f} < {threshold:.2f}")
+          PY
