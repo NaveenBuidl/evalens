@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from collections import defaultdict
 from typing import Any
 
 import requests
@@ -87,6 +88,9 @@ def main() -> None:
         AnswerRelevancyMetric(),
     ]
 
+    metric_scores: dict[str, list[float]] = defaultdict(list)
+    category_scores: dict[str, list[float]] = defaultdict(list)
+
     for case in eval_cases:
         rag_response = query_rag(case["question"])
         answer = rag_response.get("answer", "")
@@ -101,6 +105,31 @@ def main() -> None:
 
         metric_results = [metric_summary(metric, test_case) for metric in metrics]
         print_case_summary(case, answer, retrieval_context, metric_results)
+
+        case_scores: list[float] = []
+        for result in metric_results:
+            score = result.get("score")
+            if isinstance(score, (int, float)):
+                metric_scores[result["name"]].append(float(score))
+                case_scores.append(float(score))
+
+        if case_scores:
+            category_scores[case["category"]].append(sum(case_scores) / len(case_scores))
+
+    print("=" * 80)
+    print("Aggregate metric averages:")
+    for metric_name in [metric.__class__.__name__ for metric in metrics]:
+        scores = metric_scores.get(metric_name, [])
+        average = (sum(scores) / len(scores)) if scores else None
+        average_str = f"{average:.3f}" if average is not None else "N/A"
+        print(f"  - {metric_name}: avg_score={average_str} (n={len(scores)})")
+
+    print("Simple average by category:")
+    for category in ["factual", "conflict", "oos", "caveat"]:
+        scores = category_scores.get(category, [])
+        average = (sum(scores) / len(scores)) if scores else None
+        average_str = f"{average:.3f}" if average is not None else "N/A"
+        print(f"  - {category}: avg_score={average_str} (n={len(scores)})")
 
 
 if __name__ == "__main__":
