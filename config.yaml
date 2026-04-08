@@ -1,4 +1,4 @@
-corpus_path: "D:/Evalens/corpus/intercom_external/raw_pdfs"
+corpus_path: "D:/Evalens/corpus/intercom_external/raw_md"
 chunk_size: 1000
 chunk_overlap: 150
 retrieval_k: 4
