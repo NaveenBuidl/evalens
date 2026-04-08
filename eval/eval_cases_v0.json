@@ -1,0 +1,89 @@
+[
+  {
+    "id": "eval_001",
+    "category": "factual",
+    "question": "What features are included in the Pro add-on?",
+    "required_docs": [
+      "intercom_16_pro_add_on.md"
+    ],
+    "expected_behavior": "Return a grounded list of features included in the Pro add-on. Should not confuse the Pro add-on with a 'Pro plan' (which does not exist). Should mention the pricing model (conversation-volume based, not seat-based).",
+    "expected_outcome": "Answer should name the six bundled features: CX Score, Topics Explorer, Trends, Recommendations, Monitors, and Custom Scorecards. Should mention the $99/month base price for up to 1,000 conversations. Should clarify that Fin continues to work without Pro — Pro only affects reporting capabilities.",
+    "notes": "Tests precise retrieval and label disambiguation. 'Pro' is a semantically loaded term in this corpus: there is a Pro add-on (reporting features), but no 'Pro plan.' A model that conflates the two or invents a 'Pro plan' is hallucinating. Also tests whether the system understands that Fin is NOT part of the Pro add-on — a common misconception given the proximity of these concepts in retrieved chunks."
+  },
+  {
+    "id": "eval_002",
+    "category": "factual",
+    "question": "What are the eligibility requirements to apply for Intercom's Early Stage program?",
+    "required_docs": [
+      "intercom_17_early_stage_program.md"
+    ],
+    "expected_behavior": "Return a precise, grounded answer covering all three eligibility criteria as stated in the corpus. Should not invent or omit any criterion.",
+    "expected_outcome": "Answer should state all three criteria: (1) raised up to $10M in funding, (2) fewer than 15 employees, (3) must not currently be an Intercom customer. Should note that existing Intercom customers (including those on annual plans) are ineligible. May note that applicants who have started a trial can still apply.",
+    "notes": "Tests faithful retrieval of a concrete, multi-part eligibility gate. Failure modes: omitting the 'new customer' requirement (the most trip-wire criterion — someone on an annual plan is explicitly excluded), hallucinating additional criteria not in the corpus (e.g. industry type, geography), or conflating the program discount percentage with eligibility rules. The trial exception is a common subtlety a system might miss."
+  },
+  {
+    "id": "eval_003",
+    "category": "conflict",
+    "question": "How much does it cost to use Fin AI Agent with Zendesk?",
+    "required_docs": [
+      "intercom_00_pricing.md",
+      "intercom_11_fin_for_platforms_explained.md"
+    ],
+    "expected_behavior": "Acknowledge or reconcile the pricing model conflict between docs. Should not present a single confident price without qualification. Ideally surfaces both representations or flags that the information is inconsistent across sources.",
+    "expected_outcome": "The two docs present incompatible models: intercom_00_pricing.md states $0.99 per outcome with minimum commitments but no explicit monthly base fee. intercom_11_fin_for_platforms_explained.md states $49/month includes 50 Fin outcomes, then $0.99 per additional outcome. A good response would acknowledge both, note the inconsistency, or express uncertainty rather than confidently outputting only one model. The system should not fabricate a single authoritative figure.",
+    "notes": "This is the strongest conflict case in the corpus. The two docs use incompatible framing: one implies pure pay-per-outcome, the other implies a base subscription plus overage. The root cause is likely that one doc is more current, but the RAG system has no way to resolve this without surfacing both. Tests whether the system blends contradictory chunks into a plausible-sounding but misleading answer, or whether it flags uncertainty. This is a high-stakes pricing question — an overconfident wrong answer has direct business consequences."
+  },
+  {
+    "id": "eval_004",
+    "category": "conflict",
+    "question": "Is Copilot included in all Intercom plans, and can any teammate use it?",
+    "required_docs": [
+      "intercom_00_pricing.md",
+      "intercom_01_plans_explained.md",
+      "intercom_03_pricing_faqs.md"
+    ],
+    "expected_behavior": "Distinguish between (a) the limited free Copilot access included for full-seat teammates and (b) the explicit exclusion of lite seats from any Copilot usage. Should not answer a simple 'Yes, included in all plans' without the seat-type caveat.",
+    "expected_outcome": "Answer should clarify: all plans include up to 10 free Copilot conversations per month per full-seat teammate. Lite seats cannot use Copilot at all (neither included nor unlimited). Unlimited usage requires purchasing the Copilot add-on ($29/agent/mo billed annually or $35/seat/month billed monthly) on top of any plan. A misleading answer says 'Yes, Copilot is included in all plans' without surfacing the lite-seat exclusion.",
+    "notes": "Directly maps to Case 4 (observed failure: 'Yes') and Case 9 (partial improvement) from manual_eval_seed. The conflict lives across three docs: the pricing page uses positive framing ('every Intercom plan includes limited usage'), the plans-explained doc adds the full-seat qualifier, and the FAQs doc makes the lite-seat exclusion explicit. A RAG system retrieving only the first chunk will confidently answer 'Yes' and be wrong for any team with lite seats. Also contains a secondary pricing discrepancy: $29/agent/mo (billed annually) vs $35/seat/month appears in two different sections of the same doc — worth surfacing."
+  },
+  {
+    "id": "eval_005",
+    "category": "oos",
+    "question": "What is Intercom's current stock price?",
+    "required_docs": [],
+    "expected_behavior": "Refuse to answer or clearly state that this information is not in the indexed corpus. Should not hallucinate a stock price or speculate. Should not conflate 'pricing for Intercom's product' with 'Intercom's stock price.'",
+    "expected_outcome": "A correct response says the corpus does not contain financial market data and cannot answer the question. Acceptable: brief explanation that this is outside the scope of the indexed documents. Failure: fabricating a price, speculating, or saying 'Intercom is priced at $29/seat' in response to a question about equity value.",
+    "notes": "Confirmed OOS from Case 5 in manual_eval_seed — observed behavior was 'insufficient context,' which is acceptable. Included here to formalize the baseline for clean abstention. Also tests retrieval noise: the corpus contains many references to pricing ($0.99, $29, $85, $132) which could contaminate retrieval. The system must distinguish product pricing from market capitalization. This is the clearest OOS case and should be the easiest to pass — a useful sanity-check anchor."
+  },
+  {
+    "id": "eval_006",
+    "category": "oos",
+    "question": "What is Intercom's platform uptime SLA — what percentage of uptime do they guarantee?",
+    "required_docs": [],
+    "expected_behavior": "Recognize that platform uptime guarantees are not addressed in the indexed corpus. Should not conflate 'SLA' as a feature available on the Expert plan (conversation-handling service levels) with a platform reliability/uptime SLA. Should abstain or say it cannot find this in the corpus.",
+    "expected_outcome": "A correct response acknowledges this information is not in the corpus. It may note that 'SLA' as mentioned in the docs refers to Service Level Agreements for conversation response times, which is an Expert-plan feature — but that is different from platform uptime guarantees. Failure: confidently stating an uptime percentage, or answering that 'SLA is available on the Expert plan' as if that answers the question about platform reliability.",
+    "notes": "A harder OOS case than eval_005 because the word 'SLA' does appear in the corpus (intercom_01_plans_explained.md lists 'Service level agreements (SLAs)' as an Expert-only feature). Retrieval will likely surface SLA-related chunks, creating a plausible but wrong context for answering. This tests whether the system can distinguish between two different meanings of 'SLA': a customer-facing conversation response time agreement vs. an infrastructure uptime guarantee. A system that retrieves the Expert plan SLA chunk and answers 'Yes, on the Expert plan' is technically hallucinating by conflating the two."
+  },
+  {
+    "id": "eval_007",
+    "category": "caveat",
+    "question": "Can I get the Expert plan at the Early Stage program discount?",
+    "required_docs": [
+      "intercom_17_early_stage_program.md"
+    ],
+    "expected_behavior": "Answer clearly no. The corpus states explicitly that the Early Stage program is only available on the Advanced plan, and that the Early Stage discount does not apply to the Expert plan. Should not hedge or speculate — this is an unambiguous exclusion stated in an FAQ section of the source doc.",
+    "expected_outcome": "Answer should state that the Early Stage discount does not apply to the Expert plan. The program places customers on the Advanced plan only. Expert plan features (multibrand Messenger, multibrand Help Center, SLAs, HIPAA support, SSO) are not included in the Early Stage program. If Expert features are needed, the Expert plan must be purchased at standard pricing. A wrong answer says 'yes' or hedges by citing the general 93%/50%/25% discount tiers without noting the plan restriction.",
+    "notes": "Directly promotes gap item 5 from eval_cases_v0_notes.md. The corpus has an explicit FAQ answer in intercom_17_early_stage_program.md: 'No, the Early Stage program is only available on the Advanced plan... The Early Stage discount does not apply to Expert.' The failure mode is a system that retrieves the general discount framing (93% in year 1, 50% in year 2, 25% in year 3) without reaching the Expert-plan exclusion buried in the FAQ section of the same document. The question is phrased as a direct ask to activate the exclusion. Passes only if the system retrieves and surfaces the specific FAQ clause, not just the general discount description. Distinct from eval_008: that case tests the new-customer exclusion; this tests the plan-tier exclusion."
+  },
+  {
+    "id": "eval_008",
+    "category": "caveat",
+    "question": "I'm currently an Intercom customer on a paid plan. Can I still apply for the Early Stage program?",
+    "required_docs": [
+      "intercom_17_early_stage_program.md"
+    ],
+    "expected_behavior": "Answer clearly no for existing paid customers. The corpus explicitly states that applicants must not currently be an Intercom customer. Should not conflate 'trial' with 'active subscription' — the corpus makes an explicit exception for trial users.",
+    "expected_outcome": "Answer should clearly state that existing Intercom customers (including those on annual plans) are not eligible — this is an explicit exclusion in the corpus. Should not say 'maybe' or hedge without cause. May correctly note the exception: if someone has only started a trial (not a paid subscription), they can still apply. A wrong answer says 'yes' generally, or misses the distinction between trial and paid status.",
+    "notes": "Tests conditional reasoning over an eligibility exclusion. The corpus has two related pieces of information in tension: (1) general framing says the program is for startups new to Intercom, (2) a specific FAQ clarifies that trial users can still apply. A system that retrieves only the general framing might miss the trial exception; a system that retrieves only the trial FAQ might miss the paid-customer exclusion. The question is explicitly phrased as 'paid plan' to activate the exclusion. Failure modes: answering 'yes' without checking the exclusion, or correctly saying 'no' but fabricating reasons not in the corpus (e.g. revenue thresholds that are not listed)."
+  }
+]
