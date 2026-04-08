@@ -116,7 +116,20 @@ class RAGEngine:
 
         documents = results.get("documents", [[]])[0]
         metadatas = results.get("metadatas", [[]])[0]
+        distances = results.get("distances", [[]])[0]
 
+        retrieval_results = []
+        for doc, meta, distance in zip(documents, metadatas, distances):
+            meta = meta or {}
+            retrieval_results.append(
+                {
+                    "text": doc,
+                    "source": meta.get("source", ""),
+                    "chunk_index": meta.get("chunk_index"),
+                    "distance": distance,
+                }
+            )
+        
         chunks = []
         sources = []
         for doc, meta in zip(documents, metadatas):
@@ -131,6 +144,7 @@ class RAGEngine:
             "query": user_query,
             "answer": answer,
             "retrieved_chunks": chunks,
+            "retrieval_results": retrieval_results,
             "sources": sources,
             "model": self.settings.model,
             "retrieval_k": self.settings.retrieval_k,
