@@ -50,10 +50,18 @@ jobs:
 
           for i in {1..30}; do
             if curl -sf http://127.0.0.1:8000/docs > /dev/null; then
+              echo "App is up"
+              READY=1
               break
             fi
             sleep 2
           done
+
+          if [ "${READY:-0}" != "1" ]; then
+            echo "Uvicorn failed to start. Dumping log:"
+            cat uvicorn.log || true
+            exit 1
+          fi
 
           python eval/run_eval.py | tee eval_output.txt
 
