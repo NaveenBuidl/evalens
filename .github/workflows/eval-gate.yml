@@ -41,7 +41,7 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          EVALENS_CORPUS_PATH: corpus/ci_smoke
+          EVALENS_CORPUS_PATH: corpus/intercom_docs
         run: |
           set -euo pipefail
 
@@ -70,7 +70,7 @@ jobs:
           import re
           from pathlib import Path
 
-          threshold = 0.64
+          threshold = 0.68
           text = Path("eval_output.txt").read_text(encoding="utf-8", errors="ignore")
           match = re.search(r"ContextualPrecisionMetric: avg_score=([0-9.]+)", text)
           if not match:
@@ -80,4 +80,14 @@ jobs:
           print(f"ContextualPrecisionMetric avg_score={score:.3f} (threshold={threshold:.2f})")
           if score < threshold:
               raise SystemExit(f"CI gate failed: ContextualPrecisionMetric {score:.3f} < {threshold:.2f}")
+
+          recall_threshold = 0.75
+          recall_match = re.search(r"contextual_recall: avg_score=([0-9.]+)", text)
+          if not recall_match:
+              raise SystemExit("Could not find aggregate contextual_recall in eval output")
+
+          recall_score = float(recall_match.group(1))
+          print(f"ContextualRecallMetric avg_score={recall_score:.3f} (threshold={recall_threshold:.2f})")
+          if recall_score < recall_threshold:
+              raise SystemExit(f"CI gate failed: ContextualRecallMetric {recall_score:.3f} < {recall_threshold:.2f}")
           PY

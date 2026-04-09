@@ -1,0 +1,21 @@
+# CI Gate Evidence
+
+## What was proven
+- Baseline PR passed with the eval gate enabled in GitHub Actions.
+- A degraded retrieval-related PR was blocked by CI.
+
+Artifact:
+- `docs/CI gate passes on baseline retrieval config.png`
+- `docs/CI gate blocks invalid degraded retrieval config in PR.png`
+
+## Important nuance
+The blocked degraded PR used `retrieval_k: 0`, which caused the app/eval path to fail at runtime.
+So this proves CI blocks bad retrieval-related changes from merging.
+It does not yet prove a clean metric-threshold regression on a valid-but-weaker retrieval configuration.
+
+## Tracer bullet conclusion
+The end-to-end slice is proven:
+- local build works
+- eval runner works
+- CI gate runs on PRs
+- GitHub can block bad changes
