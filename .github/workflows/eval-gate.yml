@@ -39,6 +39,7 @@ jobs:
 
       - name: Run eval and enforce ContextualPrecisionMetric gate
         env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           set -euo pipefail
