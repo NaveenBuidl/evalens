@@ -23,6 +23,13 @@ class Settings:
     groq_api_key: str
 
 
+def _resolve_corpus_path(raw_path: str, config_dir: Path) -> str:
+    candidate = Path(raw_path).expanduser()
+    if not candidate.is_absolute():
+        candidate = (config_dir / candidate).resolve()
+    return str(candidate)
+
+
 def load_settings(config_path: str = "config.yaml") -> Settings:
     cfg_file = Path(config_path)
     if not cfg_file.exists():
@@ -32,9 +39,13 @@ def load_settings(config_path: str = "config.yaml") -> Settings:
         cfg = yaml.safe_load(f) or {}
 
     groq_api_key = os.getenv("GROQ_API_KEY", "")
+    raw_corpus_path = os.getenv(
+        "EVALENS_CORPUS_PATH",
+        cfg.get("corpus_path", "D:/Evalens/corpus/intercom_external/raw_pdfs"),
+    )
 
     return Settings(
-        corpus_path=cfg.get("corpus_path", "D:/Evalens/corpus/intercom_external/raw_pdfs"),
+        corpus_path=_resolve_corpus_path(raw_corpus_path, cfg_file.parent.resolve()),
         chunk_size=int(cfg.get("chunk_size", 1000)),
         chunk_overlap=int(cfg.get("chunk_overlap", 150)),
         retrieval_k=int(cfg.get("retrieval_k", 4)),

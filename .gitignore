@@ -7,3 +7,4 @@ data/
 *.log
 .chroma/
 .deepeval/
+eval/run_eval_output_*.txt
