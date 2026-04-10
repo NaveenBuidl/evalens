@@ -72,7 +72,7 @@ jobs:
 
           threshold = 0.68
           text = Path("eval_output.txt").read_text(encoding="utf-8", errors="ignore")
-          match = re.search(r"ContextualPrecisionMetric: avg_score=([0-9.]+)", text)
+          match = re.search(r"contextual_precision: avg_score=([0-9.]+)", text)
           if not match:
               raise SystemExit("Could not find aggregate ContextualPrecisionMetric in eval output")
 
