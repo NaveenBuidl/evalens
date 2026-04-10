@@ -303,7 +303,7 @@ evalens/
 │   └── config.py                       # Config loader
 ├── corpus/
 │   ├── ci_smoke/                       # 3 condensed docs for CI runs
-│   └── intercom_docs/                  # 17 Intercom help articles (markdown)
+│   └── intercom_docs/                  # 21 Intercom help articles (markdown)
 ├── eval/
 │   ├── golden_eval_set.json            # 30 queries, 7 categories
 │   ├── run_eval.py                     # Eval runner with cost tracking

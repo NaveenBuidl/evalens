@@ -172,7 +172,7 @@ Three candidate corpora were evaluated — Intercom, Zendesk, and Stripe — aga
 
 ### 4.4 Corpus composition
 
-**17 local documents** include the pricing page, plans explanation, pricing FAQs, Fin AI Agent documentation (explained, FAQs, outcomes, reporting, guidance, procedures, automation rate), platform integration docs, add-on descriptions (Pro, Copilot, Proactive Support Plus), the Early Stage program, and subscription management.
+**21 local documents** include the pricing page, plans explanation, pricing FAQs, Fin AI Agent documentation (explained, FAQs, outcomes, reporting, guidance, procedures, automation rate), platform integration docs, add-on descriptions (Pro, Copilot, Proactive Support Plus), the Early Stage program, and subscription management.
 
 **1 deliberate noise source:** intercom_04 is an article from Perspective, a company that hosts its help center on Intercom's platform. It describes completely different plans (Pro, Business, Advanced → Start, Grow, Expand) from a different company. I deliberately kept it to test whether retrieval handles irrelevant content — a common production scenario where documentation indexes include third-party or outdated pages. Eval_028 (adversarial/authority_contamination) specifically tests whether the system is confused by this document.
 
