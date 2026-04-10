@@ -1,4 +1,4 @@
-# DECISIONS.md — Evalens Eval Methodology & Gating Rationale
+# DECISIONS.md — EVALens Eval Methodology & Gating Rationale
 
 ---
 
