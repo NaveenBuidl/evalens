@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EVALens — Retrieval Evaluation & CI Quality Gate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #FAFAFA;
+    --bg-card: #FFFFFF;
+    --bg-accent: #F5F5F0;
+    --text-primary: #1A1A1A;
+    --text-secondary: #555555;
+    --text-muted: #999999;
+    --border: #E5E5E5;
+    --accent-red: #DC2626;
+    --accent-amber: #D97706;
+    --accent-green: #16A34A;
+    --accent-blue: #2563EB;
+    --accent-slate: #64748B;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-secondary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+
+  section { padding: 80px 0; }
+  section + section { border-top: 1px solid var(--border); }
+
+  h1 { font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 36px; color: var(--text-primary); letter-spacing: -0.5px; }
+  h2 { font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 22px; color: var(--text-primary); letter-spacing: -0.3px; }
+
+  .mono      { font-family: 'JetBrains Mono', monospace; font-weight: 400; }
+  .mono-bold { font-family: 'JetBrains Mono', monospace; font-weight: 500; }
+
+  /* ── HERO ── */
+  .hero { text-align: center; padding-top: 72px; padding-bottom: 80px; }
+  .hero h1 { font-size: 48px; margin-bottom: 10px; }
+  .hero .subtitle { font-size: 18px; color: var(--text-secondary); margin-bottom: 28px; }
+
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 32px; }
+
+  .badge { font-size: 12px; font-family: 'DM Sans', sans-serif; font-weight: 500; padding: 5px 12px; border-radius: 20px; border: 1px solid transparent; }
+  .badge-blue  { background: #EFF6FF; color: #1D4ED8; border-color: #BFDBFE; }
+  .badge-green { background: #F0FDF4; color: #15803D; border-color: #BBF7D0; }
+  .badge-amber { background: #FFFBEB; color: #B45309; border-color: #FDE68A; }
+  .badge-slate { background: #F8FAFC; color: #475569; border-color: #CBD5E1; }
+
+  .hero-hook { max-width: 620px; margin: 0 auto 28px; font-size: 15px; color: var(--text-secondary); line-height: 1.7; text-align: left; }
+
+  .hero-links { display: flex; gap: 24px; justify-content: center; margin-bottom: 48px; }
+  .hero-links a { font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 15px; color: var(--accent-blue); text-decoration: none; }
+  .hero-links a:hover { text-decoration: underline; }
+
+  .ci-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  .ci-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; text-align: left; }
+
+  .ci-card-header { padding: 10px 16px; display: flex; align-items: center; gap: 8px; font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 13px; }
+  .ci-card-header.pass { background: #F0FDF4; color: #15803D; }
+  .ci-card-header.fail { background: #FEF2F2; color: #B91C1C; }
+
+  .ci-card-body img { width: 100%; display: block; border-top: 1px solid var(--border); }
+
+  .ci-card-fallback { padding: 20px 16px; border-top: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-secondary); line-height: 1.8; background: #FAFAFA; }
+
+  .ci-caption { font-size: 13px; color: var(--text-muted); font-style: italic; text-align: center; }
+
+  /* ── SECTION HEADER ── */
+  .section-header { margin-bottom: 40px; }
+  .section-header h2 { margin-bottom: 6px; }
+  .section-header p { font-size: 14px; color: var(--text-muted); font-style: italic; }
+
+  /* ── EVAL FRAMEWORK ── */
+  .framework-layout { display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: start; }
+  .framework-rows { display: flex; flex-direction: column; gap: 28px; }
+
+  .row-question { font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 10px; font-family: 'DM Sans', sans-serif; }
+
+  .score-cards { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  .score-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; min-width: 130px; flex: 1; }
+  .score-card-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; font-family: 'DM Sans', sans-serif; }
+  .score-card-count { font-size: 10px; color: var(--text-muted); margin-bottom: 8px; font-family: 'DM Sans', sans-serif; }
+  .score-value { font-family: 'JetBrains Mono', monospace; font-weight: 500; font-size: 20px; margin-bottom: 8px; }
+  .score-bar-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .score-bar-fill { height: 100%; border-radius: 2px; }
+
+  .color-green { color: var(--accent-green); }
+  .color-amber { color: var(--accent-amber); }
+  .color-red   { color: var(--accent-red); }
+  .fill-green  { background: var(--accent-green); }
+  .fill-amber  { background: var(--accent-amber); }
+  .fill-red    { background: var(--accent-red); }
+
+  .framework-annotation { writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg); font-size: 11px; color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase; line-height: 1.4; padding: 8px 0; border-left: 2px solid var(--border); padding-left: 10px; white-space: nowrap; align-self: center; }
+
+  /* ── BASELINE METRICS ── */
+  .baseline-block { margin-top: 40px; }
+  .baseline-block h3 { font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 15px; color: var(--text-primary); margin-bottom: 16px; }
+
+  .metric-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 12px; }
+
+  .metric-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 14px 14px 12px; }
+  .metric-name { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; font-family: 'DM Sans', sans-serif; line-height: 1.4; }
+  .metric-score { font-family: 'JetBrains Mono', monospace; font-weight: 500; font-size: 18px; color: var(--text-primary); margin-bottom: 4px; }
+  .metric-threshold { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+  .metric-gated { display: flex; align-items: center; gap: 5px; margin-top: 6px; }
+  .gate-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .gate-dot.on  { background: var(--accent-green); }
+  .gate-dot.off { background: var(--text-muted); }
+  .gate-label { font-size: 10px; color: var(--text-muted); font-family: 'DM Sans', sans-serif; }
+
+  .cost-line { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; }
+  .cost-line span { color: var(--text-primary); font-weight: 500; }
+  .baseline-note { font-size: 13px; color: var(--text-muted); line-height: 1.6; font-style: italic; }
+
+  /* ── CONFIG IMPACT ── */
+  .config-table-wrap { overflow-x: auto; margin-bottom: 28px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; font-family: 'DM Sans', sans-serif; }
+  thead th { text-align: left; padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); background: var(--bg-accent); border-bottom: 1px solid var(--border); font-weight: 500; }
+  tbody td { padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .td-mono { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; }
+  .td-fail { color: var(--accent-red); }
+
+  .gate-badge { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 4px; }
+  .gate-badge.pass { background: #F0FDF4; color: #15803D; }
+  .gate-badge.fail { background: #FEF2F2; color: #B91C1C; }
+
+  .config-label { font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text-primary); font-weight: 500; display: block; margin-bottom: 2px; }
+  .config-sublabel { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); }
+
+  /* ── FINDING CARDS ── */
+  .finding-cards { display: flex; flex-direction: column; gap: 14px; }
+  .finding-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; border-left-width: 3px; }
+  .finding-card.red   { border-left-color: var(--accent-red); }
+  .finding-card.green { border-left-color: var(--accent-green); }
+  .finding-card.slate { border-left-color: var(--accent-slate); }
+  .finding-title { font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 14px; color: var(--text-primary); margin-bottom: 4px; }
+  .finding-body { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+
+  /* ── FAILURE CARDS ── */
+  .failure-cards { display: flex; flex-direction: column; gap: 20px; }
+  .failure-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 20px 24px; }
+  .failure-card-meta { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); margin-bottom: 10px; letter-spacing: 0.02em; }
+  .failure-query { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-primary); font-style: italic; margin-bottom: 12px; padding: 8px 12px; background: var(--bg-accent); border-radius: 4px; }
+  .failure-finding { font-size: 14px; color: var(--text-secondary); line-height: 1.65; }
+
+  /* ── FOOTER ── */
+  footer { padding: 48px 0; border-top: 1px solid var(--border); text-align: center; }
+  .footer-links { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+  .footer-links a { font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--accent-blue); text-decoration: none; }
+  .footer-links a:hover { text-decoration: underline; }
+  .footer-links .sep { color: var(--border); }
+  .footer-bridge { font-size: 14px; color: var(--text-muted); font-style: italic; margin-bottom: 14px; max-width: 520px; margin-left: auto; margin-right: auto; }
+  .footer-stack { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.8; }
+  .footer-attr { font-size: 13px; color: var(--text-muted); }
+  .footer-attr a { color: var(--text-secondary); text-decoration: none; }
+  .footer-attr a:hover { text-decoration: underline; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    section { padding: 48px 0; }
+    .hero { padding-top: 48px; padding-bottom: 48px; }
+    .hero h1 { font-size: 32px; }
+    .ci-cards { grid-template-columns: 1fr; }
+    .framework-layout { grid-template-columns: 1fr; }
+    .framework-annotation { writing-mode: horizontal-tb; transform: none; border-left: none; border-top: 2px solid var(--border); padding-left: 0; padding-top: 10px; margin-top: 8px; }
+    .metric-cards { grid-template-columns: repeat(2, 1fr); }
+    .score-cards { gap: 10px; }
+    .score-card { min-width: 100px; }
+    thead th, tbody td { padding: 8px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 1 — HERO
+     CI card numbers: GitHub Actions runs (3-file smoke corpus)
+       PR #10 pass: precision 0.721, recall 0.881
+       PR #11 fail: precision 0.586, recall 0.717
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="container">
+    <h1>EVALens</h1>
+    <p class="subtitle">Retrieval Evaluation &amp; CI Quality Gate for RAG Systems</p>
+
+    <div class="badges">
+      <span class="badge badge-blue">CI Quality Gate</span>
+      <span class="badge badge-green">Eval-First</span>
+      <span class="badge badge-amber">7 Failure Categories</span>
+      <span class="badge badge-slate">DeepEval Scored</span>
+    </div>
+
+    <p class="hero-hook">
+      At a previous role, I was setting up customer support for a new B2B initiative. The knowledge base mixed inherited consumer docs with new business policies. When we explored an AI agent for frontline queries, it confidently answered from the wrong context — quoting consumer policies to business customers, mixing legacy with current plans. The failure mode wasn't "the AI doesn't know"; it was "the AI sounds right but isn't." EVALens catches this before it reaches production.
+    </p>
+
+    <div class="hero-links">
+      <a href="https://github.com/NaveenBuidl/evalens" target="_blank" rel="noopener">GitHub →</a>
+      <a href="https://github.com/NaveenBuidl/evalens/blob/main/DECISIONS.md" target="_blank" rel="noopener">DECISIONS.md →</a>
+    </div>
+
+    <div class="ci-cards">
+      <div class="ci-card">
+        <div class="ci-card-header pass">
+          <span>✓</span>
+          PR #10 — Passed
+        </div>
+        <div class="ci-card-body">
+          <img
+            src="https://github.com/NaveenBuidl/evalens/blob/main/docs/ci_gate_passed.png"
+            alt="CI gate passed — PR #10"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"
+          >
+          <div class="ci-card-fallback" style="display:none;">
+            Precision 0.721 ≥ 0.68 · PASS<br>
+            Recall 0.881 ≥ 0.75 · PASS<br>
+            ✓ All checks passed — merge allowed
+          </div>
+        </div>
+      </div>
+
+      <div class="ci-card">
+        <div class="ci-card-header fail">
+          <span>✕</span>
+          PR #11 — Blocked
+        </div>
+        <div class="ci-card-body">
+          <img
+            src="https://github.com/NaveenBuidl/evalens/blob/main/docs/ci_gate_failed_metric.png"
+            alt="CI gate blocked — PR #11"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"
+          >
+          <div class="ci-card-fallback" style="display:none;">
+            Precision 0.586 &lt; 0.68 · FAIL<br>
+            Recall 0.717 &lt; 0.75 · FAIL<br>
+            ✕ CI gate failed — merge blocked
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="ci-caption">"Every PR runs the full 30-query eval set. Change one config parameter — retrieval_k from 4 to 1 — and the gate catches the regression."</p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 2 — EVAL SET + BASELINE METRICS
+     All numbers: baseline_results.json (k=4, chunk=1000, 30 queries)
+     Category score = mean of all 4 metrics per category
+       Factual:     mean(0.9762, 0.7738, 0.8381, 1.0000) = 0.897
+       Caveat:      mean(0.9444, 0.9444, 0.9444, 1.0000) = 0.958
+       Synthesis:   mean(0.0000, 1.0000, 0.3333, 1.0000) = 0.583
+       Conflict:    mean(1.0000, 0.7708, 0.7917, 0.8333) = 0.849
+       OOS:         mean(1.0000, 0.5000, 1.0000, 0.7500) = 0.812
+       Safety:      mean(1.0000, 0.4000, 0.6000, 0.8583) = 0.715
+       Adversarial: mean(1.0000, 0.7222, 1.0000, 0.6667) = 0.847
+     Aggregate: precision=0.711, recall=0.834, faithfulness=0.950, relevancy=0.888
+     ═══════════════════════════════════════════════════════════════ -->
+<section>
+  <div class="container">
+    <div class="section-header">
+      <h2>30 queries. 7 failure categories. 3 questions.</h2>
+      <p>Scores degrade left to right — by design.</p>
+    </div>
+
+    <div class="framework-layout">
+      <div class="framework-rows">
+
+        <div class="framework-row">
+          <div class="row-question">Can it find the right answer?</div>
+          <div class="score-cards">
+            <div class="score-card">
+              <div class="score-card-label">Factual</div>
+              <div class="score-card-count">7 queries</div>
+              <div class="score-value color-green">0.897</div>
+              <div class="score-bar-track"><div class="score-bar-fill fill-green" style="width:89.7%"></div></div>
+            </div>
+            <div class="score-card">
+              <div class="score-card-label">Caveat</div>
+              <div class="score-card-count">6 queries</div>
+              <div class="score-value color-green">0.958</div>
+              <div class="score-bar-track"><div class="score-bar-fill fill-green" style="width:95.8%"></div></div>
+            </div>
+            <div class="score-card">
+              <div class="score-card-label">Synthesis</div>
+              <div class="score-card-count">1 query</div>
+              <div class="score-value color-red">0.583</div>
+              <div class="score-bar-track"><div class="score-bar-fill fill-red" style="width:58.3%"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="framework-row">
+          <div class="row-question">Can it handle bad information?</div>
+          <div class="score-cards">
+            <div class="score-card">
+              <div class="score-card-label">Conflict</div>
+              <div class="score-card-count">4 queries</div>
+              <div class="score-value color-amber">0.849</div>
+              <div class="score-bar-track"><div class="score-bar-fill fill-amber" style="width:84.9%"></div></div>
+            </div>
+            <div class="score-card">
+              <div class="score-card-label">OOS</div>
+              <div class="score-card-count">4 queries</div>
+              <div class="score-value color-amber">0.812</div>
+              <div class="score-bar-track"><div class="score-bar-fill fill-amber" style="width:81.2%"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="framework-row">
+          <div class="row-question">Can it be trusted in production?</div>
+          <div class="score-cards">
+            <div class="score-card">
+              <div class="score-card-label">Safety</div>
+              <div class="score-card-count">5 queries</div>
+              <div class="score-value color-red">0.715</div>
+              <div class="score-bar-track"><div class="score-bar-fill fill-red" style="width:71.5%"></div></div>
+            </div>
+            <div class="score-card">
+              <div class="score-card-label">Adversarial</div>
+              <div class="score-card-count">3 queries</div>
+              <div class="score-value color-amber">0.847</div>
+              <div class="score-bar-track"><div class="score-bar-fill fill-amber" style="width:84.7%"></div></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="framework-annotation">
+        Ideal conditions &nbsp;→&nbsp; Progressive degrade &nbsp;→&nbsp; Active attack
+      </div>
+    </div>
+
+    <div class="baseline-block">
+      <h3>Baseline metrics — k=4, chunk=1000</h3>
+      <div class="metric-cards">
+        <div class="metric-card">
+          <div class="metric-name">Contextual Precision</div>
+          <div class="metric-score">0.711</div>
+          <div class="metric-threshold mono">threshold 0.68</div>
+          <div class="metric-gated"><div class="gate-dot on"></div><span class="gate-label">Gated</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-name">Contextual Recall</div>
+          <div class="metric-score">0.834</div>
+          <div class="metric-threshold mono">threshold 0.75</div>
+          <div class="metric-gated"><div class="gate-dot on"></div><span class="gate-label">Gated</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-name">Faithfulness</div>
+          <div class="metric-score">0.950</div>
+          <div class="metric-threshold mono">not gated</div>
+          <div class="metric-gated"><div class="gate-dot off"></div><span class="gate-label">Not gated</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-name">Answer Relevancy</div>
+          <div class="metric-score">0.888</div>
+          <div class="metric-threshold mono">not gated</div>
+          <div class="metric-gated"><div class="gate-dot off"></div><span class="gate-label">Not gated</span></div>
+        </div>
+      </div>
+
+      <p class="cost-line">Cost per eval run: <span class="mono-bold">$0.0234</span></p>
+
+      <p class="baseline-note">"Precision and recall are gated — they showed the strongest separation between configs. Faithfulness was too stable (0.95/0.90) to detect regression. Relevancy delta was too small (0.018) and too coarse — a useless answer can score 1.0 if it's on-topic."</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 3 — CONFIGURATION IMPACT
+     Baseline row:    baseline_results.json           k=4,  chunk=1000
+     k=1 row:         regression_results.json          k=1,  chunk=1000
+     chunk=200 row:   regression_chunk200_results.json k=4,  chunk=200
+     All values from aggregate_metrics, rounded to 3 dp
+       Baseline:  P=0.711  R=0.834  F=0.950  AR=0.888  → PASS (P≥0.68, R≥0.75)
+       k=1:       P=0.633  R=0.706  F=0.900  AR=0.870  → FAIL (P<0.68, R<0.75)
+       chunk=200: P=0.736  R=0.839  F=0.988  AR=0.806  → PASS (P≥0.68, R≥0.75)
+     Finding card drops:
+       Precision drop k1: 0.711-0.633 = 0.078
+       Recall drop k1:    0.834-0.706 = 0.128
+       Conflict k1 mean:  regression_results.json by_category Conflict = 0.656
+     ═══════════════════════════════════════════════════════════════ -->
+<section>
+  <div class="container">
+    <div class="section-header">
+      <h2>Does the gate catch real regressions?</h2>
+    </div>
+
+    <div class="config-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Config</th>
+            <th>Precision</th>
+            <th>Recall</th>
+            <th>Faithfulness</th>
+            <th>Relevancy</th>
+            <th>Gate</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <span class="config-label">Baseline</span>
+              <span class="config-sublabel">k=4, chunk=1000</span>
+            </td>
+            <td class="td-mono">0.711</td>
+            <td class="td-mono">0.834</td>
+            <td class="td-mono">0.950</td>
+            <td class="td-mono">0.888</td>
+            <td><span class="gate-badge pass">PASS</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="config-label">Degraded retrieval</span>
+              <span class="config-sublabel">k=1, chunk=1000</span>
+            </td>
+            <td class="td-mono td-fail">0.633</td>
+            <td class="td-mono td-fail">0.706</td>
+            <td class="td-mono">0.900</td>
+            <td class="td-mono">0.870</td>
+            <td><span class="gate-badge fail">FAIL</span></td>
+          </tr>
+          <tr>
+            <td>
+              <span class="config-label">Reduced chunking</span>
+              <span class="config-sublabel">k=4, chunk=200</span>
+            </td>
+            <td class="td-mono">0.736</td>
+            <td class="td-mono">0.839</td>
+            <td class="td-mono">0.988</td>
+            <td class="td-mono">0.806</td>
+            <td><span class="gate-badge pass">PASS</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="finding-cards">
+      <div class="finding-card red">
+        <div class="finding-title">k=1 is the real regression</div>
+        <div class="finding-body">Precision dropped 0.078, recall dropped 0.128. Gate blocked it. Conflict queries hit hardest — dropped from 0.849 to 0.656.</div>
+      </div>
+      <div class="finding-card green">
+        <div class="finding-title">chunk=200 is not a regression</div>
+        <div class="finding-body">Intercom's docs are written in short sections. Smaller chunks aligned with natural boundaries — precision marginally improved.</div>
+      </div>
+      <div class="finding-card slate">
+        <div class="finding-title">The meta-finding</div>
+        <div class="finding-body">The eval distinguishes impactful changes from non-impactful ones. A noisy gate blocks every change. A useful gate blocks only the ones that degrade quality.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 4 — WHERE RETRIEVAL FAILS
+     eval_014: baseline_results.json per_case, faithfulness=0.0, precision=1.0, recall=0.333
+     eval_013: baseline_results.json per_case, faithfulness=0.667, precision=0.833, recall=1.0
+     ═══════════════════════════════════════════════════════════════ -->
+<section>
+  <div class="container">
+    <div class="section-header">
+      <h2>What the metrics catch — and miss</h2>
+    </div>
+
+    <div class="failure-cards">
+      <div class="failure-card">
+        <div class="failure-card-meta">eval_014 · Synthesis · cross_doc_assembly</div>
+        <div class="failure-query">"If I'm on the Essential plan, can I use Fin with unlimited Copilot assistance?"</div>
+        <div class="failure-finding">System said "no information provided" while its retrieved context contained the answer. Faithfulness scored 0.0 — not because the system hallucinated, but because it denied having information it had. The metric can't distinguish "made stuff up" from "denied having info it had."</div>
+      </div>
+
+      <div class="failure-card">
+        <div class="failure-card-meta">eval_013 · Caveat · same_doc_multi_fact</div>
+        <div class="failure-query">"How much does Copilot cost if I pay monthly versus annually?"</div>
+        <div class="failure-finding">Retrieved the right document. Reported the $29/month annual price. Stated "no mention of a monthly cost" — when $35/seat/month was in the same document. Retrieval metrics scored well (recall 1.0). The model failed to use what it retrieved. Precision and recall can't catch this.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     FOOTER
+     ═══════════════════════════════════════════════════════════════ -->
+<footer>
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/NaveenBuidl/evalens" target="_blank" rel="noopener">GitHub</a>
+      <span class="sep">·</span>
+      <a href="https://github.com/NaveenBuidl/evalens/blob/main/DECISIONS.md" target="_blank" rel="noopener">DECISIONS.md</a>
+      <span class="sep">·</span>
+      <a href="https://dealta.mandava.in/" target="_blank" rel="noopener">DEALta</a>
+    </div>
+
+    <p class="footer-bridge">"DEALta shows I can build multi-agent systems. EVALens shows I can evaluate them and prevent bad deploys."</p>
+
+    <p class="footer-stack">FastAPI · ChromaDB · Groq · SentenceTransformer · DeepEval · GitHub Actions</p>
+
+    <p class="footer-attr">Built by <a href="https://www.linkedin.com/in/nmandava" target="_blank" rel="noopener">Naveen Mandava</a> · 2026</p>
+  </div>
+</footer>
+
+</body>
+</html>
