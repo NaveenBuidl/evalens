@@ -144,6 +144,10 @@ def main() -> None:
         retrieval_context = rag_response.get("retrieved_chunks", []) or []
         retrieved_sources = rag_response.get("sources", [])
 
+        print(f"DEBUG - input type: {type(case.get('query'))}")
+        print(f"DEBUG - input value: {case.get('query')[:50] if case.get('query') else 'MISSING'}")
+        print(f"DEBUG - retrieved_chunks type: {type(rag_response.get('retrieved_chunks'))}")
+        print(f"DEBUG - retrieved_chunks[0] type: {type(rag_response.get('retrieved_chunks', [''])[0]) if rag_response.get('retrieved_chunks') else 'EMPTY'}")
         test_case = LLMTestCase(
             input=case["query"],
             actual_output=answer,
