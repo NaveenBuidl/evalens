@@ -1,7 +1,7 @@
 corpus_path: "D:/Evalens/corpus/intercom_external/raw_md"
 chunk_size: 1000
 chunk_overlap: 150
-retrieval_k: 1
+retrieval_k: 4
 model: "llama-3.1-8b-instant"
 embedding_model: "sentence-transformers/all-MiniLM-L6-v2"
 chroma_path: ".chroma"
