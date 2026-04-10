@@ -10,7 +10,7 @@ on:
         default: ""
 
 jobs:
-  contextual-precision-gate:
+  eval-quality-gate:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -37,7 +37,7 @@ jobs:
           print(f"Using retrieval_k={data['retrieval_k']}")
           PY
 
-      - name: Run eval and enforce ContextualPrecisionMetric gate
+      - name: Run eval and enforce quality gate (precision + recall)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
@@ -72,7 +72,7 @@ jobs:
 
           threshold = 0.68
           text = Path("eval_output.txt").read_text(encoding="utf-8", errors="ignore")
-          match = re.search(r"ContextualPrecisionMetric: avg_score=([0-9.]+)", text)
+          match = re.search(r"contextual_precision: avg_score=([0-9.]+)", text)
           if not match:
               raise SystemExit("Could not find aggregate ContextualPrecisionMetric in eval output")
 
