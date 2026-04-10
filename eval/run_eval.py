@@ -20,7 +20,7 @@ EVAL_CASES_PATH = Path(__file__).with_name("golden_eval_set.json")
 QUERY_URL = "http://localhost:8000/query"
 RESULTS_DIR = Path(__file__).parent / "results"
 
-METRIC_KEYS = ["faithfulness", "contextual_precision", "contextual_recall", "answer_relevancy"]
+METRIC_KEYS = ["contextual_precision", "contextual_recall", "faithfulness", "answer_relevancy"]
 METRIC_THRESHOLDS = {
     "faithfulness": 0.70,
     "contextual_precision": 0.68,
@@ -121,9 +121,9 @@ def main() -> None:
     eval_cases = load_eval_cases(EVAL_CASES_PATH)
 
     metrics = [
-        FaithfulnessMetric(),
         ContextualPrecisionMetric(),
         ContextualRecallMetric(),
+        FaithfulnessMetric(),
         AnswerRelevancyMetric(),
     ]
 
@@ -144,10 +144,6 @@ def main() -> None:
         retrieval_context = rag_response.get("retrieved_chunks", []) or []
         retrieved_sources = rag_response.get("sources", [])
 
-        print(f"DEBUG - input type: {type(case.get('query'))}")
-        print(f"DEBUG - input value: {case.get('query')[:50] if case.get('query') else 'MISSING'}")
-        print(f"DEBUG - retrieved_chunks type: {type(rag_response.get('retrieved_chunks'))}")
-        print(f"DEBUG - retrieved_chunks[0] type: {type(rag_response.get('retrieved_chunks', [''])[0]) if rag_response.get('retrieved_chunks') else 'EMPTY'}")
         test_case = LLMTestCase(
             input=case["query"],
             actual_output=answer,
@@ -198,7 +194,7 @@ def main() -> None:
         print(f"  - {key}: avg_score={mean_str} (threshold={threshold}, pass={passed})")
 
     print("Average by category:")
-    for category in ["Factual", "Caveat", "Conflict", "OOS", "Safety", "Adversarial", "Synthesis"]:
+    for category in ["Factual", "Caveat", "Synthesis", "Conflict", "OOS", "Safety", "Adversarial"]:
         cat_data = category_scores.get(category, {})
         all_vals = [s for vals in cat_data.values() for s in vals]
         if all_vals:
@@ -254,7 +250,7 @@ def main() -> None:
         "aggregate_metrics": {key: agg_metric(key) for key in METRIC_KEYS},
         "by_category": {
             cat: agg_category(cat)
-            for cat in ["Factual", "Caveat", "Conflict", "OOS", "Safety", "Adversarial", "Synthesis"]
+            for cat in ["Factual", "Caveat", "Synthesis", "Conflict", "OOS", "Safety", "Adversarial"]
         },
         "by_pathology": by_pathology,
         "per_case": per_case_results,
