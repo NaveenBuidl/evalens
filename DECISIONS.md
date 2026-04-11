@@ -238,17 +238,17 @@ Replace empirical bracketing with thresholds derived from annotated user feedbac
 
 ## 7. What Was Deliberately Not Built
 
-**Langfuse tracing.** DEALta already demonstrates observability and tracing fluency with Langfuse. Adding it here would duplicate the signal. Time budget reallocated to the eval set and this decision log.
+**RAG system optimization.** The RAG target exists as a controlled test surface. Bad answers are eval material, not problems to fix. When the system scores 0.0 on faithfulness (eval_014) or misses a $35/month figure in its own context (eval_013), those are exactly the findings the eval methodology is designed to surface.
 
-**Fine-tuning.** The RAG target uses llama-3.1-8b-instant via Groq's free tier. The eval layer should work regardless of which model generates answers. A fine-tuned model that scores higher would be a better system, not a better eval.
+Langfuse tracing. Eval runs are already observable: per-case scores, retrieved chunks, and cost estimates are logged to JSON on every run. Adding a tracing layer would instrument the same pipeline that the eval results already describe. The signal would be redundant with what run_eval.py already captures.
 
 **Custom UI or dashboard.** Eval results are JSON files compared via CLI. The CI gate and README screenshots communicate the same information more efficiently.
+
+**Fine-tuning.** The RAG target uses llama-3.1-8b-instant via Groq's free tier. The eval layer should work regardless of which model generates answers. A fine-tuned model that scores higher would be a better system, not a better eval.
 
 **Multi-model comparison.** Running the eval set against GPT-4, Claude, and Llama-70b would be a natural extension. Deferred because it multiplies cost without contributing to the CI gating story.
 
 **Custom metrics.** Contradiction detection for conflict pairs, or completeness checking for synthesis queries, would add diagnostic power. Section 2 identifies where these would help: eval_014 showed faithfulness can't distinguish hallucination from false negatives; eval_013 showed retrieval metrics can't catch generation failures. These gaps are the starting point for custom metric development.
-
-**RAG system optimization.** The RAG target exists as a controlled test surface. Bad answers are eval material, not problems to fix. When the system scores 0.0 on faithfulness (eval_014) or misses a $35/month figure in its own context (eval_013), those are exactly the findings the eval methodology is designed to surface.
 
 ---
 
