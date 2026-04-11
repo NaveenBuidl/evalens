@@ -475,6 +475,45 @@
 </section>
 
 <!-- ═══════════════════════════════════════════════════════════════
+     SECTION 3.5 — WHERE THE FAILURES CONCENTRATE
+     All numbers from baseline_results.json and regression_results.json by_pathology
+       multi_entity_retrieval:       Factual, prec=0.000, recall=0.200; Factual avg=0.897
+       framing_dependent_conflict:   baseline prec=0.542, recall=0.833; k=1 prec=0.000, recall=0.000
+     Top regressions by |Δprec| (baseline → k=1):
+       plausible_absence:          Δprec −1.000  Δrecall  0.000
+       framing_dependent_conflict: Δprec −0.542  Δrecall −0.833
+       label_disambiguation:       Δprec −0.500  Δrecall −1.000
+     ═══════════════════════════════════════════════════════════════ -->
+<section>
+  <div class="container">
+    <div class="section-header">
+      <h2>Where the failures concentrate</h2>
+      <p>Category averages hide per-pathology variation — this is where it surfaces.</p>
+    </div>
+
+    <div class="finding-cards" style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+      <div class="finding-card red">
+        <div class="finding-title">multi_entity_retrieval: precision 0.000, recall 0.200</div>
+        <div class="finding-body">The Factual category averaged 0.897 — but this one pathology scored 0.000 on precision. The system retrieved pricing FAQs and add-on docs instead of the plans overview, then surfaced embedded hyperlinks as answers. Category averages masked a complete retrieval failure.</div>
+      </div>
+      <div class="finding-card" style="border-left-color: var(--accent-amber);">
+        <div class="finding-title">framing_dependent_conflict: collapsed under k=1</div>
+        <div class="finding-body">At baseline: precision 0.542, recall 0.833. Under k=1: precision 0.000, recall 0.000 — a complete collapse. Queries testing whether the system notices seat-type exclusions need chunks from multiple documents. One chunk is never enough.</div>
+      </div>
+    </div>
+
+    <div class="ci-card-fallback" style="border: 1px solid var(--border); border-radius: 8px; margin-top: 20px;">
+      <pre style="font: inherit; margin: 0;">Top regressions (baseline → k=1)
+
+framing_dependent_conflict   Δprec −0.542   Δrecall −0.833
+plausible_absence            Δprec −1.000   Δrecall  0.000
+label_disambiguation         Δprec −0.500   Δrecall −1.000</pre>
+      <div style="margin-top: 12px; font-size: 11px; color: var(--text-muted);">python eval/analyze_pathology.py eval/results/baseline_results.json eval/results/regression_results.json</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
      SECTION 4 — WHERE RETRIEVAL FAILS
      eval_014: baseline_results.json per_case, faithfulness=0.0, precision=1.0, recall=0.333
      eval_013: baseline_results.json per_case, faithfulness=0.667, precision=0.833, recall=1.0
