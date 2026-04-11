@@ -124,6 +124,42 @@ The eval set tests three questions about how RAG systems fail in production, thr
 
 **Total: 30 queries across 7 categories.** Each query is tagged with a pathology label (e.g., `conditional_truth_collapse`, `cross_doc_assembly`, `authority_contamination`) describing the specific failure mechanism it targets. Pathology-level scores allow tracking whether specific failure modes improve or regress across configurations.
 
+### Pathology-level scores (baseline)
+
+While categories answer "what kind of question is this?", pathology labels answer "how can the system fail?"
+
+| Pathology | Category | n | Precision | Recall |
+|-----------|----------|---|-----------|--------|
+| clean_retrieval_baseline | Factual | 4 | 0.979 | 0.917 |
+| cross_doc_retrieval | Factual | 1 | 1.000 | 1.000 |
+| label_disambiguation | Factual | 1 | 0.500 ⚠ | 1.000 |
+| multi_entity_retrieval | Factual | 1 | 0.000 ⚠ | 0.200 ⚠ |
+| conditional_truth_collapse | Caveat | 3 | 1.000 | 0.889 |
+| gap_by_omission | Caveat | 1 | 0.833 | 1.000 |
+| same_doc_multi_fact | Caveat | 1 | 0.833 | 1.000 |
+| topic_presence_answer_absence | Caveat | 1 | 1.000 | 1.000 |
+| cross_doc_assembly | Synthesis | 1 | 1.000 | 0.333 ⚠ |
+| cross_doc_contradiction | Conflict | 1 | 1.000 | 0.500 ⚠ |
+| framing_dependent_conflict | Conflict | 2 | 0.542 ⚠ | 0.833 |
+| terminology_alias_confusion | Conflict | 1 | 1.000 | 1.000 |
+| clean_oos | OOS | 2 | 0.500 ⚠ | 1.000 |
+| plausible_absence | OOS | 1 | 1.000 | 1.000 |
+| semantic_mismatch_oos | OOS | 1 | 0.000 ⚠ | 1.000 |
+| internal_data_fabrication | Safety | 1 | 0.000 ⚠ | 0.000 ⚠ |
+| pii_fabrication | Safety | 1 | 0.000 ⚠ | 1.000 |
+| prompt_injection | Safety | 1 | 0.000 ⚠ | 0.000 ⚠ |
+| scope_boundary | Safety | 1 | 1.000 | 1.000 |
+| ungrounded_persuasion | Safety | 1 | 1.000 | 1.000 |
+| authority_contamination | Adversarial | 1 | 0.917 | 1.000 |
+| false_premise | Adversarial | 1 | 0.250 ⚠ | 1.000 |
+| loaded_question | Adversarial | 1 | 1.000 | 1.000 |
+
+⚠ = precision < 0.68 or recall < 0.75
+
+Five pathologies scored precision 0.000 at baseline — `multi_entity_retrieval`, `pii_fabrication`, `internal_data_fabrication`, `prompt_injection`, and `semantic_mismatch_oos` — all in categories where retrieval noise or OOS detection produces structurally poor precision. The k=1 regression hit multi-document pathologies hardest: `framing_dependent_conflict` dropped from precision 0.542/recall 0.833 to 0.000/0.000 (Δprec=−0.542, Δrecall=−0.833) and `plausible_absence` lost all precision (−1.000), while single-document pathologies like `conditional_truth_collapse` and `cross_doc_retrieval` were unchanged. `cross_doc_assembly` was already degraded at baseline (recall=0.333) and held there under k=1 — its single test case retrieved the same top chunk regardless of depth.
+
+Run `python eval/analyze_pathology.py eval/results/baseline_results.json` for the full four-metric breakdown.
+
 The progression from Factual (0.908) to Safety (0.696) validates the design: scores degrade predictably as conditions move from ideal retrieval through information problems to active boundary probing.
 
 ---

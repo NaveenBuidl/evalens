@@ -309,7 +309,7 @@ The eval set is organized around three questions about how RAG systems fail in p
 | Adversarial | 3 | Can it be trusted? | Robustness test |
 | **Total** | **30** | | |
 
-Each query is also tagged with a pathology label describing the specific failure mechanism it targets (e.g., conditional_truth_collapse, cross_doc_assembly, authority_contamination, pii_fabrication). These are more diagnostic than category labels alone — they identify the mechanism of failure, not just the topic area. Pathology-level scores in the results JSON allow tracking whether specific failure modes improve or regress across configurations.
+Each query is also tagged with a pathology label describing the specific failure mechanism it targets (e.g., conditional_truth_collapse, cross_doc_assembly, authority_contamination, pii_fabrication). These are more diagnostic than category labels alone — they identify the mechanism of failure, not just the topic area. Pathology-level scores in the results JSON allow tracking whether specific failure modes improve or regress across configurations. The `analyze_pathology.py` script surfaces these scores as a formatted breakdown, grouping DeepEval results by failure mechanism rather than question type.
 
 ### B.3 Category-level scores validate the progression
 
@@ -324,3 +324,15 @@ Each query is also tagged with a pathology label describing the specific failure
 | Adversarial | 0.722 | Robustness degrades under adversarial inputs |
 
 The progression from Factual (0.908) to Safety (0.696) validates the eval set design: scores degrade predictably as conditions move from ideal retrieval through information problems to active boundary probing.
+
+### B.3a Pathology-level findings
+
+Category averages mask per-pathology variation. Within Factual (avg 0.908), `multi_entity_retrieval` scored precision 0.000 / recall 0.200 while `clean_retrieval_baseline` scored 0.979 / 0.917 — a 0.979-point precision spread inside a single category, driven by fundamentally different retrieval requirements (one document vs. an implicit multi-document join across plan tiers).
+
+The k=1 regression was not uniform across pathologies. Multi-document pathologies degraded most: `framing_dependent_conflict` collapsed from precision 0.542/recall 0.833 to 0.000/0.000 (Δprec=−0.542, Δrecall=−0.833), and `cross_doc_contradiction` lost all recall (0.500→0.000, Δrecall=−0.500) while precision held — retrieving only one chunk is often sufficient to find a number, but never sufficient to surface a contradiction between two sources. `cross_doc_assembly` was already degraded at baseline (recall=0.333) and held there under k=1, suggesting its single test case consistently surfaces the same top chunk regardless of retrieval depth. Single-document pathologies like `conditional_truth_collapse` (Δprec=0.000, Δrecall=0.000) and `cross_doc_retrieval` (Δprec=0.000, Δrecall=0.000) were unchanged — when one chunk contains the full answer, reducing k from 4 to 1 costs nothing.
+
+Per-pathology gating becomes viable at 500+ eval entries, where each pathology has enough cases to produce stable threshold estimates. With sufficient volume, thresholds would be calibrated per failure type rather than as a single aggregate gate — a `framing_dependent_conflict` threshold set near 0.54 would catch a regression that a blended precision threshold of 0.68 might absorb.
+
+```
+python eval/analyze_pathology.py eval/results/baseline_results.json
+```
